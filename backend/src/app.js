@@ -18,6 +18,7 @@ app.use(morgan('dev'));
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/tenants', require('./routes/tenantRoutes'));
+app.use('/api', require('./routes/userRoutes'));
 // We will add other routes here later
 
 // Health Check (Mandatory for Docker)
