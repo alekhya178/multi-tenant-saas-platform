@@ -17,13 +17,20 @@ const Projects = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
 
+  // --- HELPER: Get Config with Token ---
+  const getAuthConfig = () => {
+    const token = localStorage.getItem('token');
+    return { headers: { Authorization: `Bearer ${token}` } };
+  };
+
   const fetchProjects = async () => {
     try {
       let query = `/projects?limit=100`;
       if (search) query += `&search=${search}`;
       if (statusFilter) query += `&status=${statusFilter}`;
       
-      const res = await api.get(query);
+      // Use Manual Config
+      const res = await api.get(query, getAuthConfig());
       setProjects(res.data.data.projects);
     } catch (err) {
       setError('Failed to fetch projects');
@@ -38,14 +45,15 @@ const Projects = () => {
 
   const handleCreateOrUpdate = async (data) => {
     try {
+      const config = getAuthConfig(); // Get Token
       if (editingProject) {
-        await api.put(`/projects/${editingProject.id}`, data);
+        await api.put(`/projects/${editingProject.id}`, data, config);
       } else {
-        await api.post('/projects', data);
+        await api.post('/projects', data, config);
       }
       setShowModal(false);
       setEditingProject(null);
-      fetchProjects(); // Refresh list
+      fetchProjects(); 
     } catch (err) {
       alert(err.response?.data?.message || 'Operation failed');
     }
@@ -54,7 +62,7 @@ const Projects = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure? This will delete all tasks in this project.')) {
       try {
-        await api.delete(`/projects/${id}`);
+        await api.delete(`/projects/${id}`, getAuthConfig());
         fetchProjects();
       } catch (err) {
         alert(err.response?.data?.message || 'Delete failed');
@@ -120,7 +128,7 @@ const Projects = () => {
                   <Badge bg={p.status === 'active' ? 'success' : 'secondary'}>{p.status}</Badge>
                 </td>
                 <td>{p.taskCount} ({p.completedTaskCount} done)</td>
-                <td>{p.createdBy.fullName}</td>
+                <td>{p.createdBy?.fullName || 'Unknown'}</td>
                 <td>
                   <Button variant="outline-primary" size="sm" className="me-2" onClick={() => openEditModal(p)}>Edit</Button>
                   <Button variant="outline-danger" size="sm" onClick={() => handleDelete(p.id)}>Delete</Button>

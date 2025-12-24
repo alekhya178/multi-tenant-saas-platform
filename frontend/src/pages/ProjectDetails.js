@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Button, Card, Badge, Row, Col, ListGroup } from 'react-bootstrap';
+import { Container, Button, Card, Badge, Row, Col, ListGroup, Alert } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import TaskModal from '../components/TaskModal';
@@ -10,23 +10,38 @@ const ProjectDetails = () => {
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [debugError, setDebugError] = useState(null);
   
   // Task Modal State
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
+  // --- HELPER: Get Config with Token ---
+  const getAuthConfig = () => {
+    const token = localStorage.getItem('token');
+    return { headers: { Authorization: `Bearer ${token}` } };
+  };
+
   const fetchData = async () => {
     try {
-      // Fetch Project Details
-      const projRes = await api.get(`/projects/${id}`);
-      setProject(projRes.data.data.projects ? projRes.data.data.projects[0] : projRes.data.data); // Handle list or single structure
+      setLoading(true);
+      const config = getAuthConfig();
+      
+      console.log("Fetching Project ID:", id);
 
-      // Fetch Tasks
-      const taskRes = await api.get(`/projects/${id}/tasks`);
+      // 1. Fetch Project
+      const projRes = await api.get(`/projects/${id}`, config);
+      setProject(projRes.data.data.projects ? projRes.data.data.projects[0] : projRes.data.data);
+
+      // 2. Fetch Tasks
+      const taskRes = await api.get(`/projects/${id}/tasks`, config);
       setTasks(taskRes.data.data.tasks);
+      
     } catch (err) {
       console.error(err);
-      // alert('Error loading project');
+      // Capture the exact error message from the backend
+      const msg = err.response?.status + " " + (err.response?.data?.message || err.message);
+      setDebugError(msg);
     } finally {
       setLoading(false);
     }
@@ -38,10 +53,11 @@ const ProjectDetails = () => {
 
   const handleCreateOrUpdateTask = async (data) => {
     try {
+      const config = getAuthConfig();
       if (editingTask) {
-        await api.put(`/tasks/${editingTask.id}`, data);
+        await api.put(`/tasks/${editingTask.id}`, data, config);
       } else {
-        await api.post(`/projects/${id}/tasks`, data);
+        await api.post(`/projects/${id}/tasks`, data, config);
       }
       setShowModal(false);
       setEditingTask(null);
@@ -53,7 +69,7 @@ const ProjectDetails = () => {
 
   const handleStatusChange = async (taskId, newStatus) => {
     try {
-      await api.patch(`/tasks/${taskId}/status`, { status: newStatus });
+      await api.patch(`/tasks/${taskId}/status`, { status: newStatus }, getAuthConfig());
       fetchData();
     } catch (err) {
       alert('Failed to update status');
@@ -62,20 +78,27 @@ const ProjectDetails = () => {
 
   const handleDeleteTask = async (taskId) => {
     if(window.confirm("Delete this task?")) {
-        // Note: DELETE endpoint wasn't strictly in spec for user but implies tenant_admin
-        // We will just try to delete if role permits
-        // For now, let's just refresh as placeholder if API missing, 
-        // but assuming we added DELETE /api/tasks/:id in backend if needed.
-        // Spec 4.3 mentions "Actions: Edit, Change Status, Delete"
-        // Let's assume DELETE /api/tasks/:id exists or use update to archive.
-        // Since we didn't add DELETE route for tasks explicitly in backend instructions (oops), 
-        // we will skip delete for now or you can add it to backend taskRoutes.js
-        alert("Task deletion logic here");
+        alert("Delete logic not implemented in this demo.");
     }
   };
 
   if (loading) return <Container className="mt-5">Loading...</Container>;
-  if (!project) return <Container className="mt-5">Project not found</Container>;
+
+  // --- Error Screen ---
+  if (debugError) {
+    return (
+        <Container className="mt-5">
+            <Alert variant="danger">
+                <h4>Error Loading Project</h4>
+                <p><strong>Backend Message:</strong> {debugError}</p>
+                <p><strong>URL Tried:</strong> /projects/{id}</p>
+                <Button variant="outline-danger" onClick={() => navigate('/projects')}>Back to List</Button>
+            </Alert>
+        </Container>
+    );
+  }
+
+  if (!project) return <Container className="mt-5">Project not found (Data is null)</Container>;
 
   return (
     <Container>
@@ -121,20 +144,41 @@ const ProjectDetails = () => {
                     {task.assignedTo && (
                       <small className="text-muted">Assigned: {task.assignedTo.fullName}</small>
                     )}
+                    
                     <div className="d-flex justify-content-between mt-2">
                       <Button size="sm" variant="outline-primary" onClick={() => { setEditingTask(task); setShowModal(true); }}>
                         Edit
                       </Button>
                       
-                      {/* Status Movers */}
+                      {/* --- SMART ARROW LOGIC START --- */}
                       <div>
+                        {/* LEFT ARROW (Go Back) */}
                         {status !== 'todo' && (
-                          <Button size="sm" variant="light" className="me-1" onClick={() => handleStatusChange(task.id, 'todo')}>&larr;</Button>
+                          <Button 
+                            size="sm" 
+                            variant="light" 
+                            className="me-1" 
+                            // If Completed -> go back to In Progress. Else -> go back to Todo.
+                            onClick={() => handleStatusChange(task.id, status === 'completed' ? 'in_progress' : 'todo')}
+                          >
+                            &larr;
+                          </Button>
                         )}
+
+                        {/* RIGHT ARROW (Go Forward) */}
                         {status !== 'completed' && (
-                          <Button size="sm" variant="light" onClick={() => handleStatusChange(task.id, 'completed')}>&rarr;</Button>
+                          <Button 
+                            size="sm" 
+                            variant="light" 
+                            // If Todo -> go to In Progress. Else -> go to Completed.
+                            onClick={() => handleStatusChange(task.id, status === 'todo' ? 'in_progress' : 'completed')}
+                          >
+                            &rarr;
+                          </Button>
                         )}
                       </div>
+                      {/* --- SMART ARROW LOGIC END --- */}
+
                     </div>
                   </ListGroup.Item>
                 ))}

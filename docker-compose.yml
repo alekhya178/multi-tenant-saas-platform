@@ -34,7 +34,7 @@ services:
       - DB_PASSWORD=postgres
       - JWT_SECRET=supersecretkey_at_least_32_characters_long_for_security
       # Requirement: Use service name for internal Docker communication
-      - FRONTEND_URL=http://frontend:3000
+      - FRONTEND_URL=http://localhost:3000
     depends_on:
       database:
         condition: service_healthy

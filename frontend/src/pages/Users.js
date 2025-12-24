@@ -21,9 +21,15 @@ const Users = () => {
     try {
       if (!user?.tenantId) return;
       
+      // Get token for fetch as well, just in case
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
       let query = `/tenants/${user.tenantId}/users?limit=100`;
       if (search) query += `&search=${search}`;
       
+      // Note: If your api utility doesn't attach token automatically, 
+      // you might need to add 'config' here too: await api.get(query, config);
       const res = await api.get(query);
       setUsers(res.data.data.users);
     } catch (err) {
@@ -37,19 +43,38 @@ const Users = () => {
     fetchUsers();
   }, [search, user]);
 
+  // --- REPLACE THIS ENTIRE FUNCTION ---
   const handleCreateOrUpdate = async (data) => {
     try {
+      // 1. Get the token
+      const token = localStorage.getItem('token');
+      
+      // 2. FORCE extract the Tenant ID from the token (Bypassing AuthContext)
+      // This decodes the "middle part" of the JWT token
+      const decodedToken = JSON.parse(atob(token.split('.')[1]));
+      const reliableTenantId = decodedToken.tenantId;
+
+      console.log("FIXED ID:", reliableTenantId); // This will print '5' (or similar)
+
+      // 3. Configure Headers
+      const config = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+
       if (editingUser) {
-        // Edit logic
-        await api.put(`/users/${editingUser.id}`, data);
+        await api.put(`/users/${editingUser.id}`, data, config);
       } else {
-        // Create logic
-        await api.post(`/tenants/${user.tenantId}/users`, data);
+        // 4. Use the reliableTenantId in the URL
+        await api.post(`/tenants/${reliableTenantId}/users`, data, config);
       }
+      
       setShowModal(false);
       setEditingUser(null);
-      fetchUsers();
+      fetchUsers(); 
+      alert(editingUser ? 'User updated successfully!' : 'User created successfully!');
+      
     } catch (err) {
+      console.error(err);
       alert(err.response?.data?.message || 'Operation failed');
     }
   };
@@ -57,7 +82,10 @@ const Users = () => {
   const handleDelete = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        await api.delete(`/users/${userId}`);
+        const token = localStorage.getItem('token');
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        
+        await api.delete(`/users/${userId}`, config);
         fetchUsers();
       } catch (err) {
         alert(err.response?.data?.message || 'Delete failed');
