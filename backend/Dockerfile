@@ -1,20 +1,17 @@
-# Use Node.js LTS image
 FROM node:18-alpine
 
-# Set working directory inside the container
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
 WORKDIR /app
 
-# Copy package.json and package-lock.json first (for better caching)
 COPY package*.json ./
 
-# Install dependencies
 RUN npm install
 
-# Copy the rest of the backend code
 COPY . .
 
-# Expose the API port
 EXPOSE 5000
 
-# Start the server
+# Start command
 CMD ["npm", "start"]
