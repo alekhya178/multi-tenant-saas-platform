@@ -9,7 +9,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
-import ProjectDetails from './pages/ProjectDetails'; // We will create this next
+import ProjectDetails from './pages/ProjectDetails'; 
+import Users from './pages/Users';// We will create this next
 
 const Layout = ({ children }) => (
   <>
@@ -48,6 +49,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout><ProjectDetails /></Layout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/users" 
+            element={
+              <ProtectedRoute>
+                <Layout><Users /></Layout>
               </ProtectedRoute>
             } 
           />
