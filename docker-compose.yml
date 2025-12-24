@@ -1,23 +1,28 @@
 version: '3.8'
 
 services:
-  # Database Service (PostgreSQL)
+  # 1. Database Service (MANDATORY NAME: database)
   database:
     image: postgres:15-alpine
-    container_name: saas_db
+    container_name: database
     environment:
+      POSTGRES_DB: saas_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: saas_db
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Backend API Service
+  # 2. Backend Service (MANDATORY NAME: backend)
   backend:
     build: ./backend
-    container_name: saas_backend
+    container_name: backend
     ports:
       - "5000:5000"
     environment:
@@ -28,28 +33,29 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - JWT_SECRET=supersecretkey_at_least_32_characters_long_for_security
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=http://frontend:3000
     depends_on:
-      - database
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+      database:
+        condition: service_healthy
+    healthcheck:
+      # Mandatory Health Check using curl
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Frontend Service (React)
+  # 3. Frontend Service (MANDATORY NAME: frontend)
   frontend:
     build: ./frontend
-    container_name: saas_frontend
+    container_name: frontend
     ports:
       - "3000:3000"
     environment:
       - REACT_APP_API_URL=http://localhost:5000/api
-      # This is for browser access
     depends_on:
-      - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    stdin_open: true # Fix for React exiting immediately in Docker
+      backend:
+        condition: service_healthy
+    stdin_open: true
 
 volumes:
-  postgres_data:
+  db_data:
