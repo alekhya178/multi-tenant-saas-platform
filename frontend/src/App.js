@@ -8,9 +8,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-
-// Placeholder for future pages
-const Projects = () => <div className="container"><h1>Projects Page (Next Step)</h1></div>;
+import Projects from './pages/Projects';
+import ProjectDetails from './pages/ProjectDetails'; // We will create this next
 
 const Layout = ({ children }) => (
   <>
@@ -41,6 +40,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout><Projects /></Layout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/projects/:id" 
+            element={
+              <ProtectedRoute>
+                <Layout><ProjectDetails /></Layout>
               </ProtectedRoute>
             } 
           />
