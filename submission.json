@@ -8,31 +8,35 @@
     },
     "tenants": [
       {
-        "name": "Evaluation Corp",
-        "subdomain": "eval",
+        "name": "Demo Company",
+        "subdomain": "demo",
         "status": "active",
         "subscriptionPlan": "pro",
         "admin": {
-          "email": "admin@eval.com",
-          "password": "Demo@123",
+          "email": "admin@demo.com",
+          "password": "Admin@123",
           "role": "tenant_admin"
         },
         "users": [
           {
-            "email": "user1@eval.com",
-            "password": "User@123",
+            "email": "user1@demo.com",
+            "password": "Admin@123",
             "role": "user"
           },
           {
-            "email": "user2@eval.com",
-            "password": "User@123",
+            "email": "user2@demo.com",
+            "password": "Admin@123",
             "role": "user"
           }
         ],
         "projects": [
           {
-            "name": "Evaluation Project A",
-            "description": "Project for automated testing"
+            "name": "Website Redesign",
+            "description": "Complete overhaul"
+          },
+          {
+            "name": "Mobile App Launch",
+            "description": "Q4 Release"
           }
         ]
       }
