@@ -2,6 +2,8 @@
 
 ## 1. System Architecture Diagram
 
+![System Architecture Diagram](architecture_diagram.png)
+
 The system follows a classic **3-Tier Architecture** wrapped in Docker containers.
 
 1.  **Client Tier (Frontend):**
@@ -26,20 +28,23 @@ Browser -> Load Balancer/Docker Port (3000) -> React App -> API Call (5000) -> E
 
 ## 2. Database Schema Design (ERD)
 
-The database consists of 5 core tables. Every table (except `tenants` and `audit_logs`) has a Foreign Key linking to `tenants(id)`.
+![Database ERD](database_erd.png)
+
+The database consists of 5 core tables. **All tables (except `tenants` itself) have a Foreign Key linking to `tenants(id)`** to enforce strict data isolation.
 
 **Tables:**
 1.  **Tenants:** `id` (PK), `name`, `subdomain`, `subscription_plan`, `status`.
 2.  **Users:** `id` (PK), `tenant_id` (FK), `email`, `password_hash`, `role`.
 3.  **Projects:** `id` (PK), `tenant_id` (FK), `created_by` (FK), `name`, `status`.
 4.  **Tasks:** `id` (PK), `tenant_id` (FK), `project_id` (FK), `assigned_to` (FK), `status`, `priority`.
-5.  **Audit_Logs:** `id` (PK), `tenant_id` (FK), `action`, `entity_type`.
+5.  **Audit_Logs:** `id` (PK), `tenant_id` (FK), `user_id` (FK), `action`, `entity_type`.
 
 **Key Relationships:**
-* One Tenant -> Many Users
-* One Tenant -> Many Projects
-* One Project -> Many Tasks
-* One User -> Many Tasks (Assignment)
+* **Tenants → Users:** One Tenant has many Users.
+* **Tenants → Projects:** One Tenant has many Projects.
+* **Tenants → Audit Logs:** One Tenant owns many Audit Logs.
+* **Projects → Tasks:** One Project contains many Tasks.
+* **Users → Tasks:** Users are assigned to Tasks.
 
 ---
 

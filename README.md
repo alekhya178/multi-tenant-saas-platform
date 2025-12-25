@@ -1,6 +1,8 @@
 # SaaS Platform (Multi-Tenant)
 
-A scalable, multi-tenant Project Management SaaS platform built with Node.js, React, and PostgreSQL. Features complete data isolation, role-based access control, and subscription management.
+A scalable, multi-tenant Project Management SaaS platform built with Node.js, React, and PostgreSQL. It features complete data isolation, role-based access control, and subscription management.
+
+**Target Audience:** Small to medium-sized businesses (SMBs) requiring isolated project management workspaces for their internal teams.
 
 ## 🚀 Features
 * **Multi-Tenancy:** Complete data isolation using `tenant_id` at the database level.
@@ -20,7 +22,9 @@ A scalable, multi-tenant Project Management SaaS platform built with Node.js, Re
 * **Security:** Bcrypt (hashing), JWT (tokens), CORS.
 
 ## 🏗️ Architecture
-The application follows a standard MVC architecture.
+The application follows a standard MVC architecture with tenant isolation at the service layer.
+![Architecture Diagram](docs/architecture_diagram.png)
+
 * **Client:** React SPA communicating via REST API.
 * **Server:** Express API handling logic, validation, and tenant isolation.
 * **Database:** Single shared database with row-level tenancy (using `tenant_id` column).
@@ -29,7 +33,7 @@ The application follows a standard MVC architecture.
 
 ### Prerequisites
 * Docker & Docker Compose
-* Node.js (for local dev optional)
+* Node.js (optional, for local dev outside Docker)
 
 ### Quick Start (Docker)
 1.  **Clone the repository:**
@@ -52,19 +56,24 @@ The application follows a standard MVC architecture.
     ```bash
     docker-compose exec backend npm run seed
     ```
+    *(Note: Use `npm run seed:submission` to load evaluation credentials)*
 
 5.  **Access the App:**
     * **Frontend:** http://localhost:3000
     * **Backend:** http://localhost:5000
 
 ## 🔑 Environment Variables
-See `.env` file in backend/frontend directories.
-* `JWT_SECRET`: Secret key for token generation.
-* `DATABASE_URL`: Postgres connection string.
-* `PORT`: Backend port (default 5000).
+The application uses the following environment variables. See `.env.example` for reference.
+
+| Variable | Description | Default/Example |
+| :--- | :--- | :--- |
+| `PORT` | Backend API Port | `5000` |
+| `DATABASE_URL` | Postgres Connection String | `postgres://user:pass@db:5432/saas_db` |
+| `JWT_SECRET` | Secret key for signing tokens | `supersecretkey` |
+| `FRONTEND_URL` | URL for CORS configuration | `http://localhost:3000` |
 
 ## 📹 Demo Video
 [LINK TO YOUR YOUTUBE VIDEO HERE]
 
 ## 📚 API Documentation
-See `docs/API.md` for full endpoint details.
+See `docs/API.md` for full endpoint details and examples.
