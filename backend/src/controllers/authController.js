@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcrypt'); // Switched back to 'bcrypt'
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 const logAction = require('../utils/auditLogger');
@@ -58,65 +58,77 @@ exports.registerTenant = async (req, res) => {
 
 // API 2: Login
 exports.login = async (req, res) => {
-  const { email, password, tenantSubdomain, tenantId } = req.body;
+  const { email, password, tenantSubdomain } = req.body;
 
   try {
-    let tenant;
-    
-    // Find Tenant
-    if (tenantId) {
-        const tRes = await db.query('SELECT id, status FROM tenants WHERE id = $1', [tenantId]);
-        tenant = tRes.rows[0];
-    } else if (tenantSubdomain) {
+    let tenant = null;
+    let user = null;
+
+    // 1. SUPER ADMIN CHECK (No Tenant Required)
+    if (email === 'superadmin@system.com') {
+      const userRes = await db.query(
+        "SELECT * FROM users WHERE email = $1 AND role = 'super_admin'",
+        [email]
+      );
+      user = userRes.rows[0];
+
+      if (!user) {
+        return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      }
+    } 
+    // 2. REGULAR USER / TENANT ADMIN CHECK
+    else {
+      // Find Tenant
+      if (tenantSubdomain) {
         const tRes = await db.query('SELECT id, status FROM tenants WHERE subdomain = $1', [tenantSubdomain]);
         tenant = tRes.rows[0];
-    }
+      }
 
-    if (!tenant) {
-        // Special case for Super Admin who might log in without a tenant initially
-        // But the requirement implies login usually requires tenant context.
-        // If super admin login without tenant is needed, we handle it here:
-        if (email === 'superadmin@system.com') {
-             // Logic for system-wide super admin login could go here
-             // For now, let's assume they login via the 'demo' tenant or a specific admin portal
-        }
+      if (!tenant) {
         return res.status(404).json({ success: false, message: 'Tenant not found' });
-    }
+      }
 
-    if (tenant.status !== 'active') {
+      if (tenant.status !== 'active') {
         return res.status(403).json({ success: false, message: 'Tenant is suspended or inactive' });
+      }
+
+      // Find User within that Tenant
+      const userRes = await db.query(
+        'SELECT * FROM users WHERE email = $1 AND tenant_id = $2',
+        [email, tenant.id]
+      );
+      user = userRes.rows[0];
     }
 
-    // Find User
-    const userRes = await db.query(
-        'SELECT * FROM users WHERE email = $1 AND (tenant_id = $2 OR role = $3)', 
-        [email, tenant.id, 'super_admin']
-    );
-
-    const user = userRes.rows[0];
-
+    // 3. Verify Password
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Generate Token
+    // 4. Generate Token
     const token = jwt.sign(
-      { userId: user.id, tenantId: tenant.id, role: user.role },
+      { 
+        userId: user.id, 
+        tenantId: user.tenant_id, 
+        role: user.role 
+      },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    logAction(tenant.id, user.id, 'LOGIN', 'user', user.id, req.ip);
+    if (user.tenant_id) {
+        logAction(user.tenant_id, user.id, 'LOGIN', 'user', user.id, req.ip);
+    }
 
     res.status(200).json({
       success: true,
       data: {
         user: {
-            id: user.id,
-            email: user.email,
-            fullName: user.full_name,
-            role: user.role,
-            tenantId: tenant.id
+          id: user.id,
+          email: user.email,
+          fullName: user.full_name,
+          role: user.role,
+          tenantId: user.tenant_id
         },
         token,
         expiresIn: 86400
@@ -124,6 +136,7 @@ exports.login = async (req, res) => {
     });
 
   } catch (error) {
+    console.error('Login Error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -132,7 +145,12 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const userRes = await db.query('SELECT id, email, full_name, role, is_active FROM users WHERE id = $1', [req.user.userId]);
-    const tenantRes = await db.query('SELECT id, name, subdomain, subscription_plan, max_users, max_projects FROM tenants WHERE id = $1', [req.user.tenantId]);
+    
+    let tenantData = null;
+    if (req.user.tenantId) {
+        const tenantRes = await db.query('SELECT id, name, subdomain, subscription_plan, max_users, max_projects FROM tenants WHERE id = $1', [req.user.tenantId]);
+        tenantData = tenantRes.rows[0];
+    }
 
     if (userRes.rows.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
 
@@ -140,7 +158,7 @@ exports.getMe = async (req, res) => {
       success: true,
       data: {
         ...userRes.rows[0],
-        tenant: tenantRes.rows[0]
+        tenant: tenantData
       }
     });
   } catch (error) {
@@ -150,7 +168,8 @@ exports.getMe = async (req, res) => {
 
 // API 4: Logout
 exports.logout = (req, res) => {
-    // Stateless logout (client clears token)
-    logAction(req.user.tenantId, req.user.userId, 'LOGOUT', 'user', req.user.userId, req.ip);
+    if (req.user && req.user.tenantId) {
+        logAction(req.user.tenantId, req.user.userId, 'LOGOUT', 'user', req.user.userId, req.ip);
+    }
     res.status(200).json({ success: true, message: 'Logged out successfully' });
 };

@@ -30,12 +30,15 @@ const Login = () => {
             <Form.Label>Tenant Subdomain</Form.Label>
             <Form.Control 
               type="text" 
-              placeholder="e.g. demo"
+              placeholder="Leave empty for Super Admin"
               value={formData.subdomain}
               onChange={(e) => setFormData({...formData, subdomain: e.target.value})}
-              required 
             />
+            <Form.Text className="text-muted">
+              (Leave empty if logging in as Super Admin)
+            </Form.Text>
           </Form.Group>
+          
           <Form.Group className="mb-3">
             <Form.Label>Email</Form.Label>
             <Form.Control 

@@ -5,7 +5,7 @@ VALUES
     '11111111-1111-1111-1111-111111111111',
     NULL,
     'superadmin@system.com',
-    '$2b$10$EpWxTiX.z.6d.DqN.DqN.DqN.DqN.DqN.DqN.DqN', -- Hash for 'Admin@123'
+    '$2b$10$IYTRs1tkhC0pNyztDUt5xOOK20AvJoeY1I9VIR.PUFE6VIKZejofe', -- Hash for 'Admin@123'
     'System Super Admin',
     'super_admin',
     true
@@ -31,17 +31,18 @@ VALUES
     '33333333-3333-3333-3333-333333333333',
     '22222222-2222-2222-2222-222222222222',
     'admin@demo.com',
-    '$2b$10$EpWxTiX.z.6d.DqN.DqN.DqN.DqN.DqN.DqN.DqN', -- Hash for 'Demo@123'
+    '$2b$10$IYTRs1tkhC0pNyztDUt5xOOK20AvJoeY1I9VIR.PUFE6VIKZejofe', -- Hash for 'Admin@123'
     'Demo Admin',
     'tenant_admin',
     true
 ) ON CONFLICT DO NOTHING;
 
 -- 4. Create Regular Users
+-- Note: Also updating their hash so you can test them with 'Admin@123' if needed
 INSERT INTO users (id, tenant_id, email, password_hash, full_name, role)
 VALUES
-(uuid_generate_v4(), '22222222-2222-2222-2222-222222222222', 'user1@demo.com', '$2b$10$EpWxTiX.z.6d.DqN.DqN.DqN.DqN.DqN.DqN.DqN', 'User One', 'user'),
-(uuid_generate_v4(), '22222222-2222-2222-2222-222222222222', 'user2@demo.com', '$2b$10$EpWxTiX.z.6d.DqN.DqN.DqN.DqN.DqN.DqN.DqN', 'User Two', 'user');
+(uuid_generate_v4(), '22222222-2222-2222-2222-222222222222', 'user1@demo.com', '$2b$10$IYTRs1tkhC0pNyztDUt5xOOK20AvJoeY1I9VIR.PUFE6VIKZejofe', 'User One', 'user'),
+(uuid_generate_v4(), '22222222-2222-2222-2222-222222222222', 'user2@demo.com', '$2b$10$IYTRs1tkhC0pNyztDUt5xOOK20AvJoeY1I9VIR.PUFE6VIKZejofe', 'User Two', 'user');
 
 -- 5. Create Sample Projects
 INSERT INTO projects (id, tenant_id, name, description, status, created_by)
